@@ -76,8 +76,16 @@ def background(psf_ON, psf_OFF, header=None, mode='RAVC', lam=3.8e-6, dit=0.3,
         bckg_noise = dit * flux_bckg * thruput * mask_trans
         psf_ON += bckg_noise
         # add photon noise ~ N(0, sqrt(psf))
-        np.random.seed(seed)
-        psf_ON += np.random.normal(0, np.sqrt(psf_ON))
+        # np.random.seed(seed)
+        # psf_ON += np.random.normal(0, np.sqrt(psf_ON))
+        # Using default_rng with standard_normal is much faster than
+        # np.random.normal(0, sigma_array) for large cubes, because
+        # standard_normal draws from N(0,1) using a fast vectorised path
+        # and we then scale by sqrt(psf_ON) in a single multiply pass,
+        # avoiding per-element sigma sampling.
+        rng = np.random.default_rng(seed)
+        psf_sqrt = np.sqrt(psf_ON)
+        psf_ON += psf_sqrt * rng.standard_normal(psf_ON.shape)
 
     if verbose is True:
         print('   dit=%s s, thruput=%.4f, mask_trans=%.4f,'%(dit, thruput, mask_trans))
