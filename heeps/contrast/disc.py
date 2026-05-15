@@ -63,7 +63,7 @@ def create_disc_sequence(
         is used.
     rdi_duration : Union[int, float, None], optional
         Desired duration (in seconds) of the RDI reference sequence. If ``None``, a default of
-        20 % of the on‑axis sequence length is used.
+        20% of the on‑axis sequence length is used.
     source_xy : Union[tuple, list, None], optional
         (x, y) pixel coordinates of the source for which extinction is applied.
     extinction : Union[int, float], default=0
