@@ -242,38 +242,41 @@ def postproc_disc(
     cube : np.ndarray
         3‑D array (n_frames, ny, nx) containing the science frames.
     angle_list : np.ndarray
-        1‑D array of parallactic angles (in degrees) associated with each frame in ``cube``.
+        1‑D array of parallactic angles associated with each frame in ``cube``.
     cube_ref : np.ndarray or None, optional
         Reference cube for RDI (reference differential imaging). If ``None``, only ADI is performed.
     subsample : int, default=1
         Factor by which to down‑sample the cube (and reference) for speed. ``1`` means no subsampling.
     ncomp : int, tuple, or list, default=1
-        Number of principal components to use. If an int, a single component is used. If a tuple ``(min, max)`` or a list, the function will compute results for each component in the range.
+        Number of principal components to use. If an int, a single component is used. If a tuple ``(min, max)`` or a
+         list, the function will compute results for each component in the range.
     mask_center_px : int, default=0
-        Radius (in pixels) of a circular mask applied to the centre of each frame before PCA.
+        Radius (in pixels) of a circular mask applied to the centre of each frame.
     imlib : str, default="vip-fft"
-        Image library used by VIP for FFT‑based operations.
+        Image library used by VIP.
     source_xy : tuple or None, optional
-        (x, y) pixel coordinates of a known source; used to mask the source during PCA if provided.
+        (x, y) pixel coordinates of a known source; used for frame rejection in the PCA library.
     delta_rot : float or int or None, default=1
-        Minimum rotation (in FWHM) between frames for a given pixel to be considered independent.
+        Minimum rotation (in units of FWHM) of source_xy between frames.
     fwhm : float or int, default=5
         Full‑width at half‑maximum of the PSF, used for delta_rot.
     mask_rdi : np.ndarray, optional
-        Optional mask applied to the RDI reference cube.
+        See description in VIP.
     ref_strategy : str, default='RDI'
-        Strategy for reference handling.
+        Strategy for reference handling (RDI or ARDI).
     nproc : int, default=1
-        Number of processes to use for parallel computation.
+        Number of processors to use for parallel computation.
 
     Returns
     -------
     np.ndarray
-        Array of shape ``(n_ncomp, ny, nx)`` where ``n_ncomp`` is the number of principal components evaluated. Each slice ``res[i]`` contains the PCA‑processed image for the corresponding number of components.
+        Array of shape ``(n_ncomp, ny, nx)`` where ``n_ncomp`` is the number of principal components evaluated.
+        Each slice ``res[i]`` contains the PCA‑processed image for the corresponding number of components.
 
     Notes
     -----
-    The function currently supports the subset of ``vip_hci.psfsub.pca`` parameters used in the HEEPS disc injection workflow. Additional ``pca`` arguments can be added in the future.
+    The function currently supports the subset of ``vip_hci.psfsub.pca`` parameters used in the HEEPS disc injection
+    workflow. Additional ``pca`` arguments can be added in the future.
     """
     # subsample the cube and the reference if requested, for efficiency purposes
     if subsample > 1:
