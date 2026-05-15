@@ -5,7 +5,7 @@ This module provides functions to inject a synthetic disc model into HEEPS
 PSF data and to perform post‑processing with VIP.
 The entry point is :func:`create_disc_sequence`, which creates a mock
 observation sequence with a user-provided disc mode. The :func:`post_proc_disc` function is a
-wrapper of the relevevant VIP function for PCA post-processing.
+wrapper of the relevant VIP function for PCA post-processing.
 """
 
 import numpy as np
