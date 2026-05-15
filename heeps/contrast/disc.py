@@ -73,7 +73,8 @@ def create_disc_sequence(
     starphot : float, default=1e11
         Photometric scaling factor for the star.
     imlib : str, default="opencv"
-        Image library to use for image processing.
+        Image library to use for image processing. Use "opencv" to go fast, or "vio-fft" for better flux conservation
+        at the cost of speed. See VIP documentation for details.
     **conf : dict
         Additional conf parameters from HEEPS (e.g., background addition etc.)
 
@@ -299,12 +300,3 @@ def postproc_disc(
                   source_xy=source_xy, delta_rot=delta_rot, fwhm=fwhm, mask_rdi=mask_rdi,
                   ref_strategy=ref_strategy)
     return res
-
-
-#  script behaviour? i dont like these
-# if __name__ == '__main__':
-#     #   python -m HEEPS.heeps.contrast.disc \
-#     #       --model_path /path/to/model.fits \
-#     #       --psf_on_path /path/to/onaxis_psf.fits \
-#     #       --psf_off_path /path/to/offaxis_psf.fits
-#     pass
