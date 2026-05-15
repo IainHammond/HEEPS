@@ -40,9 +40,10 @@ def create_disc_sequence(
         **conf
 ):
     """
-    Create a mock observation sequence by injecting a synthetic disc model into a HEEPS
-    PSF and optionally generate a reference differential imaging (RDI)
-    cube. Existing on- and off-axis PSF cubes can be provided.
+    Create a mock observation sequence by injecting a synthetic disc model into a HEEPS PSF and optionally generate
+    a reference differential imaging (RDI) cube. Existing on- and off-axis PSF cubes, and coronagraph transmission,
+    can be provided. If not provided, the function will attempt to load them from the output directory based on the
+    conf parameters.
 
     Parameters
     ----------
