@@ -181,13 +181,14 @@ def create_disc_sequence(
         print(f"Using on-axis PSF from {loadname % 'onaxis'}")
     else:
         psf_ON = on_axis_psf
-
     assert psf_ON.ndim == 3, "on-axis PSF cube must be 3-dimensional"
+
     if psf_ON.shape[-1] > min_crop:
         psf_ON = cube_crop_frames(psf_ON, min_crop, verbose=False)
 
     # add the disc model
     psf_ON += cube
+    del cube
 
     # background addition
     if conf["add_bckg"]:
@@ -203,7 +204,13 @@ def create_disc_sequence(
             rdi_duration = int(0.2 * nframes) * conf["dit"]
         n_ref_frames = rdi_duration / conf["dit"]
         start_idx = np.random.randint(0, psf_ON.shape[0] - int(n_ref_frames) + 1)  # random segment of the on-axis PSF cube to use as the RDI reference, to better match the background conditions
-        psf_RDI = open_fits(loadname % "onaxis", verbose=False)[start_idx:start_idx + int(n_ref_frames)]
+
+        if on_axis_psf is None:  # reload the on-axis sequence
+            psf_RDI = open_fits(loadname % "onaxis", verbose=False)[start_idx:start_idx + int(n_ref_frames)]
+        else:
+            psf_RDI = on_axis_psf[start_idx:start_idx + int(n_ref_frames)]
+        del on_axis_psf
+
         if psf_RDI.shape[-1] > min_crop:
             psf_RDI = cube_crop_frames(psf_RDI, min_crop, verbose=False)
 
@@ -211,7 +218,11 @@ def create_disc_sequence(
         psf_ON = np.concatenate([psf_ON[:start_idx], psf_ON[start_idx + int(n_ref_frames):]], axis=0)
         pa = np.concatenate([pa[:start_idx], pa[start_idx + int(n_ref_frames):]], axis=0)
 
-        psf_RDI_OFF = open_fits(loadname % "offaxis", verbose=False)
+        if off_axis_psf is None:
+            psf_RDI_OFF = open_fits(loadname % "offaxis", verbose=False)
+        else:
+            psf_RDI_OFF = off_axis_psf
+
         if psf_RDI_OFF.shape[-1] > min_crop:
             psf_RDI_OFF = frame_crop(psf_RDI_OFF, min_crop, verbose=False)
 
