@@ -139,10 +139,13 @@ def create_disc_sequence(
     if transmission is None:
         if conf["mode"] == "ELT" or conf["mode"] is None:  # no coronagraph
             transmission = None
-        elif conf["mode"] == "CVC":
-                conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_%s_%s.fits'%(conf['band'], conf['mode'])
-                transmission = open_fits(conf['f_oat'], verbose=False)
-                print(f"Using transmission from {conf['f_oat']}")
+        elif "VC" in conf["mode"]:
+            if conf["band"] in ("L", "M"):
+                conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_L_%s.fits' % conf['mode']
+            elif conf["band"] == "N2":
+                conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_N2_CVC.fits'
+            transmission = open_fits(conf['f_oat'], verbose=False)
+            print(f"Using transmission from {conf['f_oat']}")
         else: # TODO
             raise NotImplementedError(f"Mode {conf['mode']} not implemented for disc injection.")
 
