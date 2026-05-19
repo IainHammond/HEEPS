@@ -35,7 +35,7 @@ def create_disc_sequence(
         source_xy : Union[tuple, list, None] = None,
         extinction : Union[int, float] = 0,
         tag : Union[str, None] = None,
-        starphot : float = 1e11,
+        starphot : Union[float, int] = 1e11,
         imlib : str = "opencv",
         **conf
 ):
@@ -74,10 +74,10 @@ def create_disc_sequence(
     starphot : float, default=1e11
         Photometric scaling factor for the star.
     imlib : str, default="opencv"
-        Image library to use for image processing. Use "opencv" to go fast, or "vio-fft" for better flux conservation
+        Image library to use for image processing. Use "opencv" to go fast, or "vip-fft" for better flux conservation
         at the cost of speed. See VIP documentation for details.
-    **conf : dict
-        Additional conf parameters from HEEPS (e.g., background addition etc.)
+    conf : dict, optional
+        Configuration dictionary with additional parameters from HEEPS (e.g., background addition etc.).
 
     Returns
     -------
