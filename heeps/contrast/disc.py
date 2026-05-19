@@ -13,7 +13,7 @@ from typing import Union
 import os
 
 from vip_hci.fits import open_fits, open_header
-from vip_hci.preproc import frame_crop, cube_subsample, cube_crop_frames
+from vip_hci.preproc import frame_crop, cube_subsample, cube_crop_frames, frame_shift
 from vip_hci.fm import cube_inject_fakedisk
 from vip_hci.psfsub import pca
 
@@ -48,7 +48,8 @@ def create_disc_sequence(
     Parameters
     ----------
     disc_model : np.ndarray
-        2‑D array representing the disc model to be injected. NaNs are replaced with zeros.
+        2‑D array representing the disc model to be injected. NaNs are replaced with zeros. Odd-sized models with the
+        stellar flux on the centre pixel are preferred.
     on_axis_psf : Union[np.ndarray, None], optional
         Pre‑loaded on‑axis PSF cube. If ``None``, the PSF is loaded from the output directory
         using the conf parameters.
@@ -94,21 +95,31 @@ def create_disc_sequence(
     if off_axis_psf is None:
         psf_OFF = open_fits(loadname % 'offaxis', verbose=False)
         print(f"Using off-axis PSF from {loadname%'offaxis'}")
+    else:
+        psf_OFF = off_axis_psf
     assert psf_OFF.ndim == 2, "off-axis PSF frame must be 2-dimensional"
 
     # set nans to zero
     disc_model = np.nan_to_num(disc_model, nan=0)
 
-    # Remove any extra dimensions (e.g., MCFOST cubes)
+    # remove any extra dimensions (e.g., MCFOST cubes)
     # first, squeeze singleton dimensions
     disc_model = np.squeeze(disc_model)
     # then collapse any remaining leading dimensions to a 2-D image
     while disc_model.ndim > 2:
         disc_model = disc_model[0]
 
+    # record the stellar flux in the model for flux normalisation, and set its pixel to 0 (it will be in the on-axis PSF)
+    # some codes have the star on the centre 4 pixels instead of the centre pixel only so we need to sum the values
+    mask = disc_model == disc_model.max()
+    star_val = disc_model[mask].sum()
+    disc_model[mask] = 0
+
     # ensure the model has an odd size
     if disc_model.shape[-1] % 2 == 0:
-        disc_model = disc_model[1:, 1:]  # we assume the star flux is on one pixel
+        print("Converting input disc model to odd-dimensions.", flush=True)
+        disc_model = frame_shift(disc_model, shift_y=0.5, shift_x=0.5, imlib=imlib)
+        disc_model = disc_model[1:, 1:]
 
     # crop everything to a common size
     # the HEEPS PSFs are usually 293px
@@ -117,11 +128,6 @@ def create_disc_sequence(
         psf_OFF = frame_crop(psf_OFF, min_crop, verbose=False)
     if disc_model.shape[-1] > min_crop:
         disc_model = frame_crop(disc_model, min_crop, verbose=False)
-
-    # record the stellar flux in the model and set the pixel to 0
-    star_val = np.max(disc_model)
-    star_y, star_x = np.unravel_index(np.argmax(disc_model), disc_model.shape)
-    disc_model[star_y, star_x] = 0
 
     # apply extinction if requested
     if extinction > 0 and source_xy is not None:
@@ -169,6 +175,8 @@ def create_disc_sequence(
     if on_axis_psf is None:
         psf_ON = open_fits(loadname % 'onaxis', verbose=False)
         print(f"Using on-axis PSF from {loadname % 'onaxis'}")
+    else:
+        psf_ON = on_axis_psf
 
     assert psf_ON.ndim == 3, "on-axis PSF cube must be 3-dimensional"
     if psf_ON.shape[-1] > min_crop:
