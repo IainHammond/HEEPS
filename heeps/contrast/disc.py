@@ -41,7 +41,7 @@ def create_disc_sequence(
 ):
     """
     Create a mock observation sequence by injecting a synthetic disc model into a HEEPS PSF and optionally generate
-    a reference differential imaging (RDI) cube. Existing on- and off-axis PSF cubes, and coronagraph transmission,
+    a reference differential imaging (RDI) cube. Existing on- and off-axis PSF cubes and coronagraph transmission
     can be provided. If not provided, the function will attempt to load them from the output directory based on the
     conf parameters.
 
@@ -135,13 +135,14 @@ def create_disc_sequence(
         extinction_factor = 10 ** (-0.4 * extinction)
         disc_model[source_y, source_x] *= extinction_factor
 
-    # load coronagraph transmission
+    # load coronagraph transmission depending on the mode and band
     if transmission is None:
         if conf["mode"] == "ELT" or conf["mode"] is None:  # no coronagraph
             transmission = None
         elif conf["mode"] == "CVC":
-                transmission = open_fits(conf["f_vc_trans"], verbose=False)
-                print(f"Using transmission from {conf['f_vc_trans']}")
+                conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_%s_%s.fits'%(conf['band'], conf['mode'])
+                transmission = open_fits(conf['f_oat'], verbose=False)
+                print(f"Using transmission from {conf['f_oat']}")
         else: # TODO
             raise NotImplementedError(f"Mode {conf['mode']} not implemented for disc injection.")
 
