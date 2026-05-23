@@ -4,7 +4,7 @@ HEEPS disc injection and post‑processing utilities.
 This module provides functions to inject a synthetic disc model into HEEPS
 PSF data and to perform post‑processing with VIP.
 The entry point is :func:`create_disc_sequence`, which creates a mock
-observation sequence with a user-provided disc mode. The :func:`postproc_disc` function is a
+observation sequence with a user-provided disc model. The :func:`postproc_disc` function is a
 wrapper of the relevant VIP function for PCA post-processing.
 """
 
