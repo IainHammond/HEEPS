@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib>=3.7
+ipywidgets
+itables
+astropy
+requests
+ipympl
