@@ -24,6 +24,7 @@ __author__ = "Iain Hammond"
 
 def create_disc_sequence(
         disc_model : np.ndarray,
+        db_path : str,
         on_axis_psf : Union[np.ndarray, None] = None,
         off_axis_psf : Union[np.ndarray, None] = None,
         transmission : Union[np.ndarray, None] = None,
@@ -45,6 +46,8 @@ def create_disc_sequence(
     disc_model : np.ndarray
         2‑D array representing the disc model to be injected. NaNs are replaced with zeros. Odd-sized models with the
         stellar flux on the centre pixel are preferred.
+    db_path : str
+        Path to the PSF grid directory (the folder that contains run sub-directories).
     on_axis_psf : Union[np.ndarray, None], optional
         Pre‑loaded on‑axis PSF cube. If ``None``, the PSF is loaded from the output directory
         using the conf parameters.
@@ -79,7 +82,7 @@ def create_disc_sequence(
 
     # new grid folder structure, assuming your dir_current points to where the folders are saved
     grid_dir = os.path.join(
-        conf['dir_current'],
+        db_path,
         f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 100)}ms"
     )
 
@@ -236,6 +239,7 @@ def create_disc_sequence(
 
 
 def prepare_rdi_sequence(
+        db_path : str,
         on_axis_psf : Union[np.ndarray, None] = None,
         off_axis_psf : Union[np.ndarray, None] = None,
         rdi_mag : Union[int, float, None] = None,
@@ -250,6 +254,8 @@ def prepare_rdi_sequence(
 
         Parameters
         ----------
+        db_path : str
+            Path to the PSF grid directory (the folder that contains run sub-directories).
         on_axis_psf : Union[np.ndarray, None], optional
             Pre‑loaded on‑axis PSF cube. If ``None``, the PSF is loaded based off conf and rdi_mag.
             using the conf parameters.
@@ -277,7 +283,7 @@ def prepare_rdi_sequence(
         rdi_mag = _check_mag(rdi_mag)
 
         grid_dir = os.path.join(
-            conf['dir_current'],
+            db_path,
             f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={rdi_mag}_{conf['duration']}s_{int(conf['dit'] * 100)}ms"
         )
 
