@@ -284,7 +284,7 @@ def prepare_rdi_sequence(
 
         grid_dir = os.path.join(
             db_path,
-            f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={rdi_mag}_{conf['duration']}s_{int(conf['dit'] * 100)}ms"
+            f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={rdi_mag}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
         )
 
         # convention for the April 2026 grid files, assuming dir_current points to the folder containing the PSF files
