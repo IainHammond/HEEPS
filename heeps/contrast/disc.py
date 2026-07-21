@@ -358,11 +358,11 @@ def _check_mag(mag : Union[float, int] ) -> float:
     # clamp to valid range
     if mag < allowed[0]:
         mag = allowed[0]
-        print(f"Warning: mag={mag_og} is below minimum. Using mag={mag}")
+        print(f"Attention: mag={mag_og} is below minimum. Using mag={mag}")
     elif mag > allowed[-1]:
         mag  = allowed[-1]
-        print(f"Warning: mag={mag_og} is above maximum. Using mag={mag}")
+        print(f"Attention: mag={mag_og} is above maximum. Using mag={mag}")
     elif mag != mag_og:
-        print(f"Warning: mag={mag_og} rounded to nearest grid value mag={mag}")
+        print(f"Attention: mag={mag_og} rounded to nearest grid value mag={mag}")
 
     return mag
