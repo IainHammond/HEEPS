@@ -83,7 +83,7 @@ def create_disc_sequence(
     # new grid folder structure, assuming your dir_current points to where the folders are saved
     grid_dir = os.path.join(
         db_path,
-        f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 100)}ms"
+        f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
     )
 
     # convention for the April 2026 grid files
