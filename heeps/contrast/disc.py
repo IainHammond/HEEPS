@@ -249,8 +249,8 @@ def prepare_rdi_sequence(
         **conf
 ):
         """
-        Prepare a sequence to be used as a reference for RDI (Reference Differential Imaging) from the PSF grid.
-        The function extracts a segment of the on-axis PSF cube to serve as the RDI reference depending on duration.
+        Prepare a sequence from the PSF grid to be used as a reference for RDI (Reference Differential Imaging).
+        The function extracts a random segment of the on-axis PSF cube depending on the specified duration.
 
         Parameters
         ----------
@@ -298,34 +298,34 @@ def prepare_rdi_sequence(
         assert psf_OFF.ndim == 2, "off-axis PSF frame must be 2-dimensional"
 
         if on_axis_psf is None:
-            psf_ON = open_fits(loadname % 'onaxis', verbose=False)
+            psf_RDI = open_fits(loadname % 'onaxis', verbose=False)
             print(f"Using on-axis PSF from {loadname % 'onaxis'}")
         else:
-            psf_ON = on_axis_psf
-        assert psf_ON.ndim == 3, "on-axis PSF cube must be 3-dimensional"
+            psf_RDI = on_axis_psf
+        assert psf_RDI.ndim == 3, "on-axis PSF cube must be 3-dimensional"
 
         if psf_OFF.shape[-1] > conf["ndet"]:
             psf_OFF = frame_crop(psf_OFF, conf["ndet"], verbose=False)
 
-        if psf_ON.shape[-1] > conf["ndet"]:
-            psf_ON = cube_crop_frames(psf_ON, conf["ndet"], verbose=False)
+        if psf_RDI.shape[-1] > conf["ndet"]:
+            psf_RDI = cube_crop_frames(psf_RDI, conf["ndet"], verbose=False)
 
         if rdi_duration is None:
-            rdi_duration = int(psf_ON.shape[0] * 0.2) * conf["dit"]
+            rdi_duration = int(psf_RDI.shape[0] * 0.2) * conf["dit"]
             print("Warning: rdi_duration was not set. Using 20% of full sequence.", flush=True)
 
         # convert into number of frames to extract from the on-axis PSF cube
         n_ref_frames = rdi_duration / conf["dit"]
 
         # check if the requested reference duration is longer than the available on-axis PSF cube
-        if n_ref_frames > psf_ON.shape[0]:
-            n_ref_frames = psf_ON.shape[0]
+        if n_ref_frames > psf_RDI.shape[0]:
+            n_ref_frames = psf_RDI.shape[0]
             print(f"WARNING! Requested RDI duration ({rdi_duration}s) exceeded available on-axis PSF cube length "
-                  f"({psf_ON.shape[0] * conf['dit']}s). Setting them to be the same.", flush=True)
+                  f"({psf_RDI.shape[0] * conf['dit']}s). Setting them to be the same.", flush=True)
 
         # random segment of the on-axis PSF cube to use as the RDI reference
-        start_idx = np.random.randint(0, psf_ON.shape[0] - int(n_ref_frames) + 1)
-        psf_RDI = psf_ON[start_idx:start_idx + int(n_ref_frames)]
+        start_idx = np.random.randint(low=0, high=psf_RDI.shape[0] - int(n_ref_frames) + 1)
+        psf_RDI = psf_RDI[start_idx:start_idx + int(n_ref_frames)]
 
         _, _, ap_flux = psf_template(psf_OFF)
         psf_RDI *= starphot / ap_flux
