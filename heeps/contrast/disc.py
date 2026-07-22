@@ -15,7 +15,7 @@ import numpy as np
 from typing import Union
 import os
 
-from vip_hci.fits import open_fits, open_header
+from vip_hci.fits import open_fits
 from vip_hci.preproc import frame_crop, cube_crop_frames, frame_shift
 from vip_hci.fm import cube_inject_fakedisk
 
@@ -85,6 +85,7 @@ def create_disc_sequence(
         db_path += "/"
 
     # new grid folder structure and naming convention for the April 2026 grid files
+    # for example, vortex_psf_grid/L_CVC_s=Q2_mag=8.5_3600s_100ms
     grid_dir = os.path.join(
         db_path,
         f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
