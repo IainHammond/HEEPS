@@ -112,8 +112,6 @@ def create_disc_sequence(
     # some codes have the star on the centre 4 pixels instead of the centre pixel only so we need to sum the values
     mask = disc_model == disc_model.max()
     star_val = disc_model[mask].sum()
-    print("star_val = %.2e" % star_val, flush=True)
-    print("mask = %s" % str(mask), flush=True)
     disc_model[mask] = 0
 
     # ensure the model has an odd size
