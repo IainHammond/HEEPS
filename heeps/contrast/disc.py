@@ -193,50 +193,6 @@ def create_disc_sequence(
         psf_ON *= starphot / ap_flux
     del psf_OFF
 
-    # RDI handling (at the moment we only support taking a chunk out of the science sequence
-    # if rdi:
-    #     if rdi_duration is None:
-    #         print("Warning: rdi_duration was not set. Using 20% of on-axis sequence.", flush=True)
-    #         rdi_duration = int(0.2 * nframes) * conf["dit"]
-    #     n_ref_frames = rdi_duration / conf["dit"]
-    #     start_idx = np.random.randint(0, psf_ON.shape[0] - int(n_ref_frames) + 1)  # random segment of the on-axis PSF cube to use as the RDI reference, to better match the background conditions
-    #
-    #     if on_axis_psf is None:  # reload the on-axis sequence
-    #         psf_RDI = open_fits(loadname % "onaxis", verbose=False)[start_idx:start_idx + int(n_ref_frames)]
-    #     else:
-    #         psf_RDI = on_axis_psf[start_idx:start_idx + int(n_ref_frames)]
-    #     del on_axis_psf
-    #
-    #     if psf_RDI.shape[-1] > min_crop:
-    #         psf_RDI = cube_crop_frames(psf_RDI, min_crop, verbose=False)
-    #
-    #     # remove the RDI segment from psf_ON to correctly represent lost integration time on the science target
-    #     psf_ON = np.concatenate([psf_ON[:start_idx], psf_ON[start_idx + int(n_ref_frames):]], axis=0)
-    #     pa = np.concatenate([pa[:start_idx], pa[start_idx + int(n_ref_frames):]], axis=0)
-    #
-    #     if off_axis_psf is None:
-    #         psf_RDI_OFF = open_fits(loadname % "offaxis", verbose=False)
-    #     else:
-    #         psf_RDI_OFF = off_axis_psf
-    #
-    #     if psf_RDI_OFF.shape[-1] > min_crop:
-    #         psf_RDI_OFF = frame_crop(psf_RDI_OFF, min_crop, verbose=False)
-    #
-    #     if rdi_mag is None:
-    #         print("Warning: rdi_mag was not set. Using mag of science target.", flush=True)
-    #     else:
-    #         conf["mag"] = rdi_mag
-    #
-    #     if conf["add_bckg"]:
-    #         psf_RDI, psf_RDI_OFF = background(psf_RDI, psf_RDI_OFF, verbose=True, **conf)
-    #
-    #     _, _, ap_flux = psf_template(psf_RDI_OFF)
-    #     psf_RDI *= starphot / ap_flux
-    #     del psf_RDI_OFF
-    #
-    #     return psf_ON, pa, psf_RDI
-    #
-    # else:
     return psf_ON, pa
 
 
