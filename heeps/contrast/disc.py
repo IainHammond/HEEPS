@@ -178,7 +178,7 @@ def create_disc_sequence(
         ker=1,
         imlib=imlib,
     )
-    # write_fits(conf["dir_current"] + "/prepared_model.fits", cube[0])
+
     # normalise by the stellar flux that we removed earlier
     cube /= star_val
 
