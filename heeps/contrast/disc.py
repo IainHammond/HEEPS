@@ -22,26 +22,25 @@ from vip_hci.fm import cube_inject_fakedisk
 from heeps.util.psf_template import psf_template
 from heeps.util.paralang import paralang
 
-__all__ = ['create_disc_sequence', 'prepare_rdi_sequence']
+__all__ = ['create_disc_sequence']
 __author__ = "Iain Hammond"
 
 def create_disc_sequence(
         disc_model : np.ndarray,
         db_path : str = "vortex_psf_grid/",
-        on_axis_psf : Union[np.ndarray, None] = None,
-        off_axis_psf : Union[np.ndarray, None] = None,
-        transmission : Union[np.ndarray, None] = None,
         seeing_q : Union[int] = 2,
         source_xy : Union[tuple, list, None] = None,
         extinction : Union[int, float] = 0,
+        do_rdi : bool = True,
+        rdi_mag : Union[int, float, None] = None,
+        rdi_duration : Union[int, float, None] = None,
         starphot : Union[float, int] = 1e11,
         imlib : str = "opencv",
         **conf
 ):
     """
-    Create a mock observation sequence by injecting a synthetic disc model into a HEEPS PSF. Existing on- and off-axis
-    PSF cubes and coronagraph transmission can be provided. If not provided, the function will attempt to load them
-    from the PSF grid directory based on the conf parameters.
+    Create a mock observation sequence by injecting a synthetic disc model into a HEEPS PSF. The function will attempt
+    to load from the PSF grid directory based on the conf parameters.
 
     The code assumes that the disc model has the stellar flux included to convert to units of contrast.
 
@@ -51,16 +50,7 @@ def create_disc_sequence(
         2‑D array representing the disc model to be injected. NaNs are replaced with zeros. Odd-sized models with the
         stellar flux on the centre pixel are preferred.
     db_path : str
-        Path to the PSF grid directory (the folder that contains run sub-directories). Required if on_axis_psf or
-        off_axis_psf are not provided.
-    on_axis_psf : Union[np.ndarray, None], optional
-        Pre‑loaded on‑axis PSF cube. If ``None``, the PSF is loaded from the output directory
-        using the conf parameters.
-    off_axis_psf : Union[np.ndarray, None], optional
-        Pre‑loaded off‑axis PSF frame. If ``None``, the PSF is loaded from the output directory.
-    transmission : Union[np.ndarray, None], optional
-        Coronagraph transmission. If ``None``, the appropriate transmission is loaded based
-        on the instrument mode in conf. Uses VIP conventions.
+        Path to the PSF grid directory (the folder that contains run sub-directories).
     seeing_q : int, default=2
         Seeing quartile (1-3) to select the PSF. Uses a default seeing of Q2 if not specified.
     source_xy : Union[tuple, list, None], optional
@@ -85,18 +75,26 @@ def create_disc_sequence(
     # if mag is not in the grid, round to the closest available magnitude
     conf["mag"] = _check_mag(conf["mag"])
 
-    # if one or both of the PSFs are not provided, prepare the path for loading them from the PSF grid directory
-    if on_axis_psf is None or off_axis_psf is None:
-        # make sure db_path ends with a slash
-        if not db_path.endswith("/"):
-            db_path += "/"
+    if rdi_mag is None:
+        rdi_mag = conf["mag"]
+        print("Note: rdi_mag was not set. Using mag in the conf dictionary.", flush=True)
 
-        # new grid folder structure and naming convention for the April 2026 grid files
-        grid_dir = os.path.join(
-            db_path,
-            f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
-        )
-        loadname = os.path.join(grid_dir, '%s_PSF_bckg1_%s_%s.fits' % ('%s', conf['band'], conf['mode']))
+    rdi_mag = _check_mag(rdi_mag)
+
+    # would the RDI reference come from the exact same grid cube as the science sequence?
+    reuse_science_cube = do_rdi and (rdi_mag == conf["mag"])
+
+    # prepare the path for loading the PSF grid directory
+    # make sure db_path ends with a slash
+    if not db_path.endswith("/"):
+        db_path += "/"
+
+    # new grid folder structure and naming convention for the April 2026 grid files
+    grid_dir = os.path.join(
+        db_path,
+        f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
+    )
+    loadname = os.path.join(grid_dir, '%s_PSF_bckg1_%s_%s.fits' % ('%s', conf['band'], conf['mode']))
 
     # set nans to zero
     disc_model = np.nan_to_num(disc_model, nan=0)
@@ -120,11 +118,8 @@ def create_disc_sequence(
         disc_model = frame_shift(disc_model, shift_y=0.5, shift_x=0.5, imlib=imlib)
         disc_model = disc_model[1:, 1:]
 
-    if off_axis_psf is None:
-        psf_OFF = open_fits(loadname % 'offaxis', verbose=False)
-        print(f"Using off-axis PSF from {loadname%'offaxis'}")
-    else:
-        psf_OFF = off_axis_psf
+    psf_OFF = open_fits(loadname % 'offaxis', verbose=False)
+    print(f"Using off-axis PSF from {loadname%'offaxis'}")
     assert psf_OFF.ndim == 2, "off-axis PSF frame must be 2-dimensional"
 
     # crop everything to a common size
@@ -143,28 +138,83 @@ def create_disc_sequence(
         print("Applied extinction of %.2f mag to source at (x, y) = (%d, %d)" % (extinction, source_x, source_y), flush=True)
 
     # load coronagraph transmission depending on the mode and band
-    if transmission is None:
-        if conf["mode"] == "ELT" or conf["mode"] is None:  # no coronagraph
-            transmission = None
-        elif "VC" in conf["mode"]:
-            if conf["band"] in ("L", "M"):
-                conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_L_%s.fits' % conf['mode']
-            elif conf["band"] == "N2":
-                conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_N2_CVC.fits'
-            transmission = open_fits(conf['f_oat'], verbose=False)
-            print(f"Using transmission from {conf['f_oat']}")
-        else: # TODO
-            raise NotImplementedError(f"Mode {conf['mode']} not implemented for disc injection.")
+    if conf["mode"] == "ELT" or conf["mode"] is None:  # no coronagraph
+        transmission = None
+    elif "VC" in conf["mode"]:
+        if conf["band"] in ("L", "M"):
+            conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_L_%s.fits' % conf['mode']
+        elif conf["band"] == "N2":
+            conf['f_oat'] = conf['dir_input'] + 'optics/vc/oat_N2_CVC.fits'
+        transmission = open_fits(conf['f_oat'], verbose=False)
+        print(f"Using transmission from {conf['f_oat']}")
+    else: # TODO
+        raise NotImplementedError(f"Mode {conf['mode']} not implemented for disc injection.")
 
-    # determine how many frames are in the on-axis sequence
-    if on_axis_psf is None:
-        nframes = open_header(loadname % 'onaxis')['NAXIS3']  # don't open the whole cube yet to save memory
-    else:
-        nframes = on_axis_psf.shape[0]
+    # open and crop sequence
+    psf_ON = open_fits(loadname % 'onaxis', verbose=False)
+    print(f"Using on-axis PSF from {loadname % 'onaxis'}")
+    assert psf_ON.ndim == 3, "on-axis PSF cube must be 3-dimensional"
+
+    if psf_ON.shape[-1] > min_crop:
+        psf_ON = cube_crop_frames(psf_ON, min_crop, verbose=False)
+
+    nframes = psf_ON.shape[0]
 
     # generate parallactic angles and inject the fake disc using VIP
     pa = paralang(npts=nframes, dec=conf["dec"], lat=conf["lat"], duration=int(nframes * conf["dit"]))
 
+    # RDI handling
+    if do_rdi:
+        if rdi_duration is None:
+            rdi_duration = int(nframes * conf["dit"] * 0.2)
+            print("Note: rdi_duration was not set. Using 20% of the PSF sequence.", flush=True)
+
+        n_ref_frames = int(round(rdi_duration / conf["dit"]))
+
+        if reuse_science_cube:
+            # always take the RDI block from the end of the sequence, leaving the science
+            # sequence as one contiguous block from the start
+            rdi_idx = slice(nframes - n_ref_frames, nframes)
+            sci_idx = slice(0, nframes - n_ref_frames)
+
+            psf_RDI = psf_ON[rdi_idx].copy()
+            psf_ON = psf_ON[sci_idx]
+            psf_OFF_rdi = psf_OFF.copy()
+            pa = pa[sci_idx]
+
+            print(f"RDI reference (mag={rdi_mag}) reused from the science cube: "
+                  f"{n_ref_frames} frames removed from the end of the science sequence, "
+                  f"no overlap with science frames.", flush=True)
+
+        else:  # we load in a different PSF cube for the RDI reference and extract the requested duration
+            rdi_grid_dir = os.path.join(
+                db_path,
+                f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={rdi_mag}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
+            )
+            rdi_loadname = os.path.join(rdi_grid_dir, '%s_PSF_bckg1_%s_%s.fits' % ('%s', conf['band'], conf['mode']))
+
+            psf_OFF_rdi = open_fits(rdi_loadname % 'offaxis', verbose=False)
+            print(f"Using RDI off-axis PSF from {rdi_loadname % 'offaxis'}")
+            assert psf_OFF_rdi.ndim == 2, "RDI off-axis PSF frame must be 2-dimensional"
+
+            psf_RDI = open_fits(rdi_loadname % 'onaxis', verbose=False)
+            print(f"Using RDI on-axis PSF from {rdi_loadname % 'onaxis'}")
+            assert psf_RDI.ndim == 3, "RDI on-axis PSF cube must be 3-dimensional"
+
+            if psf_OFF_rdi.shape[-1] > min_crop:
+                psf_OFF_rdi = frame_crop(psf_OFF_rdi, min_crop, verbose=False)
+            if psf_RDI.shape[-1] > min_crop:
+                psf_RDI = cube_crop_frames(psf_RDI, min_crop, verbose=False)
+
+            start_idx = np.random.randint(low=0, high=psf_RDI.shape[0] - n_ref_frames + 1)
+            psf_RDI = psf_RDI[start_idx:start_idx + n_ref_frames]
+
+        if starphot is not None:
+            _, _, ap_flux_rdi = psf_template(psf_OFF_rdi)
+            psf_RDI *= starphot / ap_flux_rdi
+        del psf_OFF_rdi
+
+    # where the magic happens
     cube = cube_inject_fakedisk(
         disc_model,
         pa,
@@ -179,19 +229,8 @@ def create_disc_sequence(
         imlib=imlib,
     )
 
-    # normalise by the stellar flux that we removed earlier
+    # normalise by the stellar flux that we removed earlier (units of contrast)
     cube /= star_val
-
-    # open and crop sequence if needed
-    if on_axis_psf is None:
-        psf_ON = open_fits(loadname % 'onaxis', verbose=False)
-        print(f"Using on-axis PSF from {loadname % 'onaxis'}")
-    else:
-        psf_ON = on_axis_psf
-    assert psf_ON.ndim == 3, "on-axis PSF cube must be 3-dimensional"
-
-    if psf_ON.shape[-1] > min_crop:
-        psf_ON = cube_crop_frames(psf_ON, min_crop, verbose=False)
 
     # add the disc model
     psf_ON += cube
@@ -202,10 +241,13 @@ def create_disc_sequence(
         psf_ON *= starphot / ap_flux
     del psf_OFF
 
-    return psf_ON, pa
+    if do_rdi:
+        return psf_ON, pa, psf_RDI
+    else:
+        return psf_ON, pa
 
 
-def prepare_rdi_sequence(
+def _prepare_rdi_sequence(
         db_path : str = "vortex_psf_grid/",
         on_axis_psf : Union[np.ndarray, None] = None,
         off_axis_psf : Union[np.ndarray, None] = None,
