@@ -155,7 +155,7 @@ def create_disc_sequence(
 
     nframes = psf_ON.shape[0]
 
-    # generate parallactic angles and inject the fake disc using VIP
+    # generate parallactic angles
     pa = paralang(npts=nframes, dec=conf["dec"], lat=conf["lat"], duration=int(nframes * conf["dit"]))
 
     # RDI handling
