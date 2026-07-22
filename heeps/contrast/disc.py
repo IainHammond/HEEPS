@@ -73,7 +73,7 @@ def create_disc_sequence(
         Image library to use for image processing. Use "opencv" to go fast, or "vip-fft" for better flux conservation
         at the cost of speed. See VIP documentation for details.
     conf : dict, optional
-        Configuration dictionary with parameters from HEEPS (e.g., background addition etc.).
+        Configuration dictionary with parameters from HEEPS (e.g., band, dit, mag, etc.).
 
     Returns
     -------
