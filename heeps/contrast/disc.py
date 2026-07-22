@@ -188,8 +188,10 @@ def create_disc_sequence(
     psf_ON += cube
     del cube
 
-    _, _, ap_flux = psf_template(psf_OFF)
-    psf_ON *= starphot / ap_flux
+    if starphot is not None:
+        _, _, ap_flux = psf_template(psf_OFF)
+        psf_ON *= starphot / ap_flux
+    del psf_OFF
 
     # RDI handling (at the moment we only support taking a chunk out of the science sequence
     # if rdi:
@@ -327,8 +329,9 @@ def prepare_rdi_sequence(
         start_idx = np.random.randint(low=0, high=psf_RDI.shape[0] - int(n_ref_frames) + 1)
         psf_RDI = psf_RDI[start_idx:start_idx + int(n_ref_frames)]
 
-        _, _, ap_flux = psf_template(psf_OFF)
-        psf_RDI *= starphot / ap_flux
+        if starphot is not None:
+            _, _, ap_flux = psf_template(psf_OFF)
+            psf_RDI *= starphot / ap_flux
         del psf_OFF
 
         return psf_RDI
