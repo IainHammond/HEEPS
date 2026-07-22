@@ -40,6 +40,8 @@ def create_disc_sequence(
     PSF cubes and coronagraph transmission can be provided. If not provided, the function will attempt to load them
     from the PSF grid directory based on the conf parameters.
 
+    The code assumes that the disc model has the stellar flux included to convert to units of contrast.
+
     Parameters
     ----------
     disc_model : np.ndarray
@@ -85,7 +87,7 @@ def create_disc_sequence(
         # make sure db_path ends with a slash
         if not db_path.endswith("/"):
             db_path += "/"
-            
+
         # new grid folder structure and naming convention for the April 2026 grid files
         grid_dir = os.path.join(
             db_path,
