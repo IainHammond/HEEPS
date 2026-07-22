@@ -75,14 +75,9 @@ def create_disc_sequence(
     # if mag is not in the grid, round to the closest available magnitude
     conf["mag"] = _check_mag(conf["mag"])
 
-    if rdi_mag is None:
+    if do_rdi and rdi_mag is None:
         rdi_mag = conf["mag"]
         print("Note: rdi_mag was not set. Using mag in the conf dictionary.", flush=True)
-
-    rdi_mag = _check_mag(rdi_mag)
-
-    # would the RDI reference come from the exact same grid cube as the science sequence?
-    reuse_science_cube = do_rdi and (rdi_mag == conf["mag"])
 
     # prepare the path for loading the PSF grid directory
     # make sure db_path ends with a slash
@@ -171,7 +166,7 @@ def create_disc_sequence(
 
         n_ref_frames = int(round(rdi_duration / conf["dit"]))
 
-        if reuse_science_cube:
+        if rdi_mag == conf["mag"]:
             # always take the RDI block from the end of the sequence, leaving the science
             # sequence as one contiguous block from the start
             rdi_idx = slice(nframes - n_ref_frames, nframes)
