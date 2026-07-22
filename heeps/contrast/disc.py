@@ -334,7 +334,7 @@ def prepare_rdi_sequence(
         return psf_RDI
 
 
-def _check_mag(mag : Union[float, int] ) -> float:
+def _check_mag(mag : Union[float, int]) -> float:
     """
     Check if the provided magnitude is in the Liege grid. If not, round to the closest available magnitude.
 
@@ -345,7 +345,7 @@ def _check_mag(mag : Union[float, int] ) -> float:
 
     Returns
     -------
-    new_mag : float
+    mag : float
         The closest available magnitude in the Liege grid.
     """
     mag_og = float(mag)
@@ -365,4 +365,4 @@ def _check_mag(mag : Union[float, int] ) -> float:
     elif mag != mag_og:
         print(f"Attention: mag={mag_og} rounded to nearest grid value mag={mag}")
 
-    return mag
+    return float(mag)
