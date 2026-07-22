@@ -24,7 +24,7 @@ __author__ = "Iain Hammond"
 
 def create_disc_sequence(
         disc_model : np.ndarray,
-        db_path : str,
+        db_path : str = "vortex_psf_grid/",
         on_axis_psf : Union[np.ndarray, None] = None,
         off_axis_psf : Union[np.ndarray, None] = None,
         transmission : Union[np.ndarray, None] = None,
@@ -36,10 +36,9 @@ def create_disc_sequence(
         **conf
 ):
     """
-    Create a mock observation sequence by injecting a synthetic disc model into a HEEPS PSF and optionally generate
-    a reference differential imaging (RDI) cube. Existing on- and off-axis PSF cubes and coronagraph transmission
-    can be provided. If not provided, the function will attempt to load them from the output directory based on the
-    conf parameters.
+    Create a mock observation sequence by injecting a synthetic disc model into a HEEPS PSF. Existing on- and off-axis
+    PSF cubes and coronagraph transmission can be provided. If not provided, the function will attempt to load them
+    from the PSF grid directory based on the conf parameters.
 
     Parameters
     ----------
@@ -47,7 +46,8 @@ def create_disc_sequence(
         2‑D array representing the disc model to be injected. NaNs are replaced with zeros. Odd-sized models with the
         stellar flux on the centre pixel are preferred.
     db_path : str
-        Path to the PSF grid directory (the folder that contains run sub-directories).
+        Path to the PSF grid directory (the folder that contains run sub-directories). Required if on_axis_psf or
+        off_axis_psf are not provided.
     on_axis_psf : Union[np.ndarray, None], optional
         Pre‑loaded on‑axis PSF cube. If ``None``, the PSF is loaded from the output directory
         using the conf parameters.
@@ -80,21 +80,18 @@ def create_disc_sequence(
     # if mag is not in the grid, round to the closest available magnitude
     conf["mag"] = _check_mag(conf["mag"])
 
-    # new grid folder structure, assuming your dir_current points to where the folders are saved
-    grid_dir = os.path.join(
-        db_path,
-        f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
-    )
-
-    # convention for the April 2026 grid files
-    loadname = os.path.join(grid_dir, '%s_PSF_bckg1_%s_%s.fits' % ('%s', conf['band'], conf['mode']))
-
-    if off_axis_psf is None:
-        psf_OFF = open_fits(loadname % 'offaxis', verbose=False)
-        print(f"Using off-axis PSF from {loadname%'offaxis'}")
-    else:
-        psf_OFF = off_axis_psf
-    assert psf_OFF.ndim == 2, "off-axis PSF frame must be 2-dimensional"
+    # if one or both of the PSFs are not provided, prepare the path for loading them from the PSF grid directory
+    if on_axis_psf is None or off_axis_psf is None:
+        # make sure db_path ends with a slash
+        if not db_path.endswith("/"):
+            db_path += "/"
+            
+        # new grid folder structure and naming convention for the April 2026 grid files
+        grid_dir = os.path.join(
+            db_path,
+            f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={conf['mag']}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
+        )
+        loadname = os.path.join(grid_dir, '%s_PSF_bckg1_%s_%s.fits' % ('%s', conf['band'], conf['mode']))
 
     # set nans to zero
     disc_model = np.nan_to_num(disc_model, nan=0)
@@ -117,6 +114,13 @@ def create_disc_sequence(
         print("Converting input disc model to odd-dimensions.", flush=True)
         disc_model = frame_shift(disc_model, shift_y=0.5, shift_x=0.5, imlib=imlib)
         disc_model = disc_model[1:, 1:]
+
+    if off_axis_psf is None:
+        psf_OFF = open_fits(loadname % 'offaxis', verbose=False)
+        print(f"Using off-axis PSF from {loadname%'offaxis'}")
+    else:
+        psf_OFF = off_axis_psf
+    assert psf_OFF.ndim == 2, "off-axis PSF frame must be 2-dimensional"
 
     # crop everything to a common size
     min_crop = min(psf_OFF.shape[-1], disc_model.shape[-1], conf["ndet"])
@@ -197,7 +201,7 @@ def create_disc_sequence(
 
 
 def prepare_rdi_sequence(
-        db_path : str,
+        db_path : str = "vortex_psf_grid/",
         on_axis_psf : Union[np.ndarray, None] = None,
         off_axis_psf : Union[np.ndarray, None] = None,
         rdi_mag : Union[int, float, None] = None,
@@ -213,7 +217,8 @@ def prepare_rdi_sequence(
         Parameters
         ----------
         db_path : str
-            Path to the PSF grid directory (the folder that contains run sub-directories).
+            Path to the PSF grid directory (the folder that contains run sub-directories). Required if on_axis_psf or
+            off_axis_psf are not provided.
         on_axis_psf : Union[np.ndarray, None], optional
             Pre‑loaded on‑axis PSF cube. If ``None``, the PSF is loaded based off conf and rdi_mag.
             using the conf parameters.
