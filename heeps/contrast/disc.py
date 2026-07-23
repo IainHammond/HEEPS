@@ -48,7 +48,7 @@ def create_disc_sequence(
         2‑D array representing the disc model to be injected. NaNs are replaced with zeros. Odd-sized models with the
         stellar flux on the centre pixel are preferred.
     db_path : str
-        Path to the PSF grid directory (the folder that contains run sub-directories).
+        Path to the PSF grid directory (the folder that contains run subdirectories).
     seeing_q : int, default=2
         Seeing quartile (1-3) to select the PSF. Uses a default seeing of Q2 if not specified.
     source_xy : Union[tuple, list, None], optional
