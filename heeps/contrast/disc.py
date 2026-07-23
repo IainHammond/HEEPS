@@ -7,8 +7,6 @@ PSF cubes for later post‑processing with VIP.
 The entry point is :func:`create_disc_sequence`, which creates a mock
 observation sequence with a user-provided disc model.
 
-The :func:`prepare_rdi_sequence` function prepares a reference sequence for
-RDI (Reference Differential Imaging) also from the PSF grid.
 """
 
 import numpy as np
@@ -28,13 +26,13 @@ __author__ = "Iain Hammond"
 def create_disc_sequence(
         disc_model : np.ndarray,
         db_path : str = "vortex_psf_grid/",
-        seeing_q : Union[int] = 2,
+        seeing_q : int = 2,
         source_xy : Union[tuple, list, None] = None,
         extinction : Union[int, float] = 0,
+        starphot : Union[float, int, None] = 1e11,
         do_rdi : bool = True,
         rdi_mag : Union[int, float, None] = None,
         rdi_duration : Union[int, float, None] = None,
-        starphot : Union[float, int] = 1e11,
         imlib : str = "opencv",
         **conf
 ):
@@ -42,7 +40,7 @@ def create_disc_sequence(
     Create a mock observation sequence by injecting a synthetic disc model into a HEEPS PSF. The function will attempt
     to load from the PSF grid directory based on the conf parameters.
 
-    The code assumes that the disc model has the stellar flux included to convert to units of contrast.
+    The code assumes that the disc model has the star included to convert to units of contrast.
 
     Parameters
     ----------
@@ -59,6 +57,15 @@ def create_disc_sequence(
         Extinction in magnitudes to apply to the source at ``source_xy``.
     starphot : float, default=1e11
         Photometric scaling factor for the star.
+    do_rdi : bool, default=True
+        Whether to prepare a reference cube for RDI (Reference Differential Imaging). If ``True``, a reference cube is
+        returned as the third output of this function.
+    rdi_mag : Union[int, float, None], optional
+        Magnitude to use for the RDI reference. If ``None``, magnitude in conf is used (i.e., the same as the science
+        target).
+    rdi_duration : Union[int, float, None], optional
+        Desired duration (in seconds) of the RDI reference sequence. If ``None``, a default of 20% of the on‑axis
+        sequence length is used.
     imlib : str, default="opencv"
         Image library to use for image processing. Use "opencv" to go fast, or "vip-fft" for better flux conservation
         at the cost of speed. See VIP documentation for details.
@@ -71,6 +78,8 @@ def create_disc_sequence(
         Sequence with the fake disc injected into the on‑axis PSF cube.
     pa : numpy.ndarray
         Array of parallactic angles used for the injection.
+    psf_RDI : numpy.ndarray, optional
+        Reference cube for RDI, if ``do_rdi`` is ``True``. Otherwise, this output is not returned.
     """
     # if mag is not in the grid, round to the closest available magnitude
     conf["mag"] = _check_mag(conf["mag"])
@@ -84,7 +93,7 @@ def create_disc_sequence(
     if not db_path.endswith("/"):
         db_path += "/"
 
-    # new grid folder structure and naming convention for the April 2026 grid files
+    # new grid folder structure and naming convention for the April 2026 grid files,
     # for example, vortex_psf_grid/L_CVC_s=Q2_mag=8.5_3600s_100ms
     grid_dir = os.path.join(
         db_path,
@@ -243,104 +252,6 @@ def create_disc_sequence(
         return psf_ON, pa
 
 
-def _prepare_rdi_sequence(
-        db_path : str = "vortex_psf_grid/",
-        on_axis_psf : Union[np.ndarray, None] = None,
-        off_axis_psf : Union[np.ndarray, None] = None,
-        rdi_mag : Union[int, float, None] = None,
-        rdi_duration : Union[int, float, None] = None,
-        seeing_q : Union[int] = 2,
-        starphot : Union[float, int] = 1e11,
-        **conf
-):
-        """
-        Prepare a sequence from the PSF grid to be used as a reference for RDI (Reference Differential Imaging).
-        The function extracts a random segment of the on-axis PSF cube depending on the specified duration.
-
-        Parameters
-        ----------
-        db_path : str
-            Path to the PSF grid directory (the folder that contains run sub-directories). Required if on_axis_psf or
-            off_axis_psf are not provided.
-        on_axis_psf : Union[np.ndarray, None], optional
-            Pre‑loaded on‑axis PSF cube. If ``None``, the PSF is loaded based off conf and rdi_mag.
-            using the conf parameters.
-        off_axis_psf : Union[np.ndarray, None], optional
-            Pre‑loaded off‑axis PSF frame. If ``None``, the PSF is loaded based off conf and rdi_mag.
-        rdi_mag : Union[int, float, None], optional
-            Magnitude to use for the RDI reference. If ``None``, magnitude in conf is used.
-        rdi_duration : Union[int, float, None], optional
-            Desired duration (in seconds) of the RDI reference sequence. If ``None``, a default of
-            20% of the on‑axis sequence length is used.
-        seeing_q : int, default=2
-            Seeing quartile (1-3) to select the PSF. Uses a default seeing of Q2 if not specified.
-        starphot : float, default=1e11
-            Photometric scaling factor for the star.
-
-        Returns
-        -------
-        psf_RDI : numpy.ndarray
-            Reference cube for RDI.
-        """
-        if rdi_mag is None:
-            rdi_mag = conf["mag"]
-            print("Warning: rdi_mag was not set. Using mag in the conf dictionary.", flush=True)
-
-        rdi_mag = _check_mag(rdi_mag)
-
-        grid_dir = os.path.join(
-            db_path,
-            f"{conf['band']}_{conf['mode']}_s=Q{seeing_q}_mag={rdi_mag}_{conf['duration']}s_{int(conf['dit'] * 1000)}ms"
-        )
-
-        # convention for the April 2026 grid files, assuming dir_current points to the folder containing the PSF files
-        loadname = os.path.join(grid_dir, '%s_PSF_bckg1_%s_%s.fits' % ('%s', conf['band'], conf['mode']))
-
-        if off_axis_psf is None:
-            psf_OFF = open_fits(loadname % 'offaxis', verbose=False)
-            print(f"Using off-axis PSF from {loadname%'offaxis'}")
-        else:
-            psf_OFF = off_axis_psf
-        assert psf_OFF.ndim == 2, "off-axis PSF frame must be 2-dimensional"
-
-        if on_axis_psf is None:
-            psf_RDI = open_fits(loadname % 'onaxis', verbose=False)
-            print(f"Using on-axis PSF from {loadname % 'onaxis'}")
-        else:
-            psf_RDI = on_axis_psf
-        assert psf_RDI.ndim == 3, "on-axis PSF cube must be 3-dimensional"
-
-        if psf_OFF.shape[-1] > conf["ndet"]:
-            psf_OFF = frame_crop(psf_OFF, conf["ndet"], verbose=False)
-
-        if psf_RDI.shape[-1] > conf["ndet"]:
-            psf_RDI = cube_crop_frames(psf_RDI, conf["ndet"], verbose=False)
-
-        if rdi_duration is None:
-            rdi_duration = int(psf_RDI.shape[0] * 0.2) * conf["dit"]
-            print("Warning: rdi_duration was not set. Using 20% of full sequence.", flush=True)
-
-        # convert into number of frames to extract from the on-axis PSF cube
-        n_ref_frames = rdi_duration / conf["dit"]
-
-        # check if the requested reference duration is longer than the available on-axis PSF cube
-        if n_ref_frames > psf_RDI.shape[0]:
-            n_ref_frames = psf_RDI.shape[0]
-            print(f"WARNING! Requested RDI duration ({rdi_duration}s) exceeded available on-axis PSF cube length "
-                  f"({psf_RDI.shape[0] * conf['dit']}s). Setting them to be the same.", flush=True)
-
-        # random segment of the on-axis PSF cube to use as the RDI reference
-        start_idx = np.random.randint(low=0, high=psf_RDI.shape[0] - int(n_ref_frames) + 1)
-        psf_RDI = psf_RDI[start_idx:start_idx + int(n_ref_frames)]
-
-        if starphot is not None:
-            _, _, ap_flux = psf_template(psf_OFF)
-            psf_RDI *= starphot / ap_flux
-        del psf_OFF
-
-        return psf_RDI
-
-
 def _check_mag(mag : Union[float, int]) -> float:
     """
     Check if the provided magnitude is in the Liege grid. If not, round to the closest available magnitude.
@@ -353,7 +264,7 @@ def _check_mag(mag : Union[float, int]) -> float:
     Returns
     -------
     mag : float
-        The closest available magnitude in the Liege grid.
+        The closest available magnitude in the Liege grid as a float.
     """
     mag_og = float(mag)
 
