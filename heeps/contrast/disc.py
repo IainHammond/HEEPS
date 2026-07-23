@@ -254,7 +254,8 @@ def create_disc_sequence(
 
 def _check_mag(mag : Union[float, int]) -> float:
     """
-    Check if the provided magnitude is in the Liege grid. If not, round to the closest available magnitude.
+    Check if the provided magnitude is in the Liege grid. If not, round to the closest available magnitude. A float
+    must be returned as the grid contains mag as a float in the filenames.
 
     Parameters
     ----------
@@ -264,7 +265,7 @@ def _check_mag(mag : Union[float, int]) -> float:
     Returns
     -------
     mag : float
-        The closest available magnitude in the Liege grid as a float.
+        The closest available magnitude in the Liege grid.
     """
     mag_og = float(mag)
 
