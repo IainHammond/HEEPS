@@ -252,7 +252,7 @@ def create_disc_sequence(
         return psf_ON, pa
 
 
-def _check_mag(mag : Union[float, int]) -> float:
+def _check_mag(mag : Union[float, int], band : str) -> float:
     """
     Check if the provided magnitude is in the Liege grid. If not, round to the closest available magnitude. A float
     must be returned as the grid contains mag as a float in the filenames.
@@ -261,6 +261,8 @@ def _check_mag(mag : Union[float, int]) -> float:
     ----------
     mag : float, int
         The magnitude to check.
+    band : str
+        The band of the observation (e.g., "L", "M", "N1", "N2".)
 
     Returns
     -------
@@ -269,7 +271,16 @@ def _check_mag(mag : Union[float, int]) -> float:
     """
     mag_og = float(mag)
 
-    allowed = np.arange(-1.5, 9.0 + 0.5, step=0.5)
+    if band == "L":
+        allowed = np.arange(-1.5, 9.0 + 0.5, step=0.5)
+    elif band == "M":
+        allowed = np.arange(-1.5, 7.0 + 0.5, step=0.5)
+    elif band == "N1":
+        allowed = np.arange(-1.5, 4.0 + 0.5, step=0.5)
+    elif band == "N2":
+        allowed = np.arange(-1.5, 3.0 + 0.5, step=0.5)
+    else:
+        raise ValueError(f"Band {band} is not supported. Please use 'L', 'M', 'N1', or 'N2'.")
 
     if mag not in allowed:
         mag = round(mag / 0.5) * 0.5
