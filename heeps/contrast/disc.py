@@ -82,7 +82,7 @@ def create_disc_sequence(
         Reference cube for RDI, if ``do_rdi`` is ``True``. Otherwise, this output is not returned.
     """
     # if mag is not in the grid, round to the closest available magnitude
-    conf["mag"] = _check_mag(conf["mag"])
+    conf["mag"] = _check_mag(conf["mag"], conf["band"])
 
     if do_rdi and rdi_mag is None:
         rdi_mag = conf["mag"]
@@ -288,10 +288,10 @@ def _check_mag(mag : Union[float, int], band : str) -> float:
     # clamp to valid range
     if mag < allowed[0]:
         mag = allowed[0]
-        print(f"Attention: mag={mag_og} is below minimum. Using mag={mag}")
+        print(f"Attention: mag={mag_og} is below minimum for {band}. Using mag={mag}")
     elif mag > allowed[-1]:
         mag  = allowed[-1]
-        print(f"Attention: mag={mag_og} is above maximum. Using mag={mag}")
+        print(f"Attention: mag={mag_og} is above maximum for {band}. Using mag={mag}")
     elif mag != mag_og:
         print(f"Attention: mag={mag_og} rounded to nearest grid value mag={mag}")
 
