@@ -82,7 +82,7 @@ def create_disc_sequence(
         Reference cube for RDI, if ``do_rdi`` is ``True``. Otherwise, this output is not returned.
     """
     # if mag is not in the grid, round to the closest available magnitude
-    conf["mag"] = _check_mag(conf["mag"], conf["band"])
+    conf["mag"] = _check_grid(conf["mag"], conf["band"], conf["mode"])
 
     if do_rdi and rdi_mag is None:
         rdi_mag = conf["mag"]
@@ -252,7 +252,7 @@ def create_disc_sequence(
         return psf_ON, pa
 
 
-def _check_mag(mag : Union[float, int], band : str) -> float:
+def _check_grid(mag : Union[float, int], band : str, mode : str) -> float:
     """
     Check if the provided magnitude is in the Liege grid. If not, round to the closest available magnitude. A float
     must be returned as the grid contains mag as a float in the filenames.
@@ -263,24 +263,28 @@ def _check_mag(mag : Union[float, int], band : str) -> float:
         The magnitude to check.
     band : str
         The band of the observation (e.g., "L", "M", "N1", "N2".)
+    mode : str
+        The mode of the observation (e.g., "CVC", "RAVC".)
 
     Returns
     -------
     mag : float
-        The closest available magnitude in the Liege grid.
+        The closest available magnitude in the Liege grid for a given band and mode.
     """
     mag_og = float(mag)
 
-    if band == "L":
+    if band == "L" and mode == "CVC":
         allowed = np.arange(-1.5, 9.0 + 0.5, step=0.5)
-    elif band == "M":
-        allowed = np.arange(-1.5, 7.0 + 0.5, step=0.5)
-    elif band == "N1":
+    elif band == "L" and mode == "RAVC":
         allowed = np.arange(-1.5, 4.0 + 0.5, step=0.5)
-    elif band == "N2":
+    elif band == "M" and mode == "CVC":
+        allowed = np.arange(-1.5, 7.0 + 0.5, step=0.5)
+    elif band == "N1" and mode == "CVC":
+        allowed = np.arange(-1.5, 4.0 + 0.5, step=0.5)
+    elif band == "N2" and mode == "CVC":
         allowed = np.arange(-1.5, 3.0 + 0.5, step=0.5)
     else:
-        raise ValueError(f"Band {band} is not supported. Please use 'L', 'M', 'N1', or 'N2'.")
+        raise ValueError(f"Band {band} and mode {mode} is not supported.")
 
     if mag not in allowed:
         mag = round(mag / 0.5) * 0.5
